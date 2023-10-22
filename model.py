@@ -19,20 +19,21 @@ class MLMModel(pl.LightningModule):
         attention_mask = batch['attention_mask']
         labels = input_ids.clone()
         labels[labels == self.tokenizer.pad_token_id] = -100
+        
         # ODE Solver
-        # outputs = self(input_ids, attention_mask)
-        # loss = outputs.loss
+        #outputs = self(input_ids, attention_mask)
+        #loss = outputs.loss
         outputs = self(input_ids, attention_mask)
         x  = outputs.hidden_states[0]
-        y0 = outputs.hidden_states[-1]
         
+        y0 = outputs.hidden_states[-1]
         y1 = x  + 0.5*y0 + 0.5 * self.encoder(x  + y0)
         y2 = y0 + 0.5*y1 + 0.5 * self.encoder(y0 + y1)
         y3 = y1 + 0.5*y2 + 0.5 * self.encoder(y1 + y2)
         
         # 별도의 예측값 y3(==y_hat)을 사용한 loss를 어떻게 적용할지? normalizing 포함해서
         # output.loss = 
-        loss = outputs.loss
+        loss = y3.loss
         return {"loss": loss}
 
     def configure_optimizers(self):
